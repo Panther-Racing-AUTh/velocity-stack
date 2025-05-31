@@ -11,6 +11,9 @@ extern const int SERVO_ID;
 extern int SERVO_RX;
 extern int SERVO_TX;
 
+extern int lastServoPos;
+extern bool servoFollowingEnabled;
+
 // ===== Initialization Functions =====
 
 // Initializes UART communication for the servo using SERVO_RX and SERVO_TX

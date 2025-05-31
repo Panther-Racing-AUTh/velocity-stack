@@ -41,4 +41,10 @@ int simulateMoto3RPM();
 // Interrupt Service Routine for sensor pulse timing
 void IRAM_ATTR rpmSensorISR();
 
+void initRpmSensorInterrupt();
+
+int getRpmPin();
+
+void setRpmPin(int pin);
+
 #endif  // RPM_H

@@ -14,46 +14,11 @@
 #include "include/nvs_utils.h"
 #include "include/rpm.h"
 #include "include/servo.h"
+#include "include/state.h"
 
 
-
-// Button declarations
-// #define STATUS_BUTTON 9 
-// #define POWER_BUTTON 1
 
 int STATUS_BUTTON = 9 ;
-int POWER_BUTTON = 1;
-// Pin declarations
-const int interruptPin = 18;  // Digital GPIO pin for signal detection
-
-unsigned long lastServoUpdate = 0;
-
-unsigned long lastPrintTime = 0;  // For periodic RPM updates
-bool functionStatus = true;       // Toggle isDiagnosticsMode (ON/OFF)
-unsigned long lastDebounceTime = 0;
-const unsigned long debounceDelay = 50;
-bool wifiEnabled = true;  // Track WiFi state, diagnostics sto true kai race mode sto false
-bool printOnceEnable=false;
-String status = "diagnostics";
-
-//Possible modes:
-
-// off          - standby mode
-// diagnostics  - default mode 
-// race         - race mode (rpm calculation enabled)
-// wifi         - diagnostics mode (WIFI enabled)
-
-// Variables for mode change from button press
-volatile bool waitingForSecondPress = false;
-volatile bool doublePressDetected = false;
-volatile unsigned long lastPressTime = 0;
-unsigned long singlePressTimer = 0;
-bool singlePressPending = false;
-
-
-bool printOnceDisable=false;
-bool lastWifiButtonState = HIGH;  // Previous button state
-bool wifiButtonState = HIGH;
 
 // ============ Interrupt Service Routines (ISRs) ===================
 
@@ -63,38 +28,9 @@ void IRAM_ATTR handleStatusInterrupt() {
   static unsigned long lastTrigger = 0;
   if (millis() - lastTrigger > 200) {
     lastTrigger = millis();
-    Serial.println("============ SYSTEM STATUS ============");
-    Serial.print("Current mode: ");
-    Serial.println(status);
+    printMenu();
   }
 }
-
-void IRAM_ATTR handlePowerInterrupt() {
-  static unsigned long lastTrigger = 0;
-  unsigned long now = millis();
-
-  if (now - lastTrigger < 150) return;  // Debounce
-  lastTrigger = now;
-
-  if (waitingForSecondPress && (now - lastPressTime < 500)) {
-    doublePressDetected = true;
-    waitingForSecondPress = false;
-  } else {
-    waitingForSecondPress = true;
-    lastPressTime = now;
-    singlePressTimer = now;
-    singlePressPending = true;
-  }
-}
-
-
-
-
-
-
-
-
-
 
 
 
@@ -147,45 +83,6 @@ void IRAM_ATTR handlePowerInterrupt() {
 //     //ESP.restart();
 // }
 
-void changeStatus(){
-  if (doublePressDetected) {
-    doublePressDetected = false;
-    singlePressPending = false;
-    waitingForSecondPress = false;
-
-    if (status == "diagnostics") {
-      status = "race";
-      Serial.println("Switched to RACE mode");
-      // raceMode();
-    } else if (status == "race"){
-      status = "wifi";
-      Serial.println("Switched to WIFI mode");
-    }
-    else {
-      status = "diagnostics";
-      Serial.println("Switched to DIAGNOSTICS mode");
-      // diagnosticsMode();
-    }
-
-    return;  // Done this loop
-  }
-
-  // Handle single press after timeout
-  if (singlePressPending && millis() - singlePressTimer > 1000) {
-    singlePressPending = false;
-    waitingForSecondPress = false;
-
-    if (status == "off") {
-      status = "diagnostics";
-      Serial.println("Turned ON: DIAGNOSTICS mode");
-      // diagnosticsMode();
-    } else {
-      status = "off";
-      Serial.printf("Turned OFF\n");
-    }
-  }
-}
-
 
 void setup() { 
   Serial.begin(115200);
@@ -196,18 +93,21 @@ void setup() {
   // Servo Initialization
   servo_defaultInit();
 
+  // Mode Switch Button Initialization
+  initModeButtonInterrupt();
 
-  attachInterrupt(digitalPinToInterrupt(interruptPin), rpmSensorISR, RISING);
-  pinMode(interruptPin, INPUT);
+  // Init State
+  initState();
+
+  // RPM Sensor Pin Initialization
+  initRpmSensorInterrupt();
 
 
 
   // button initialization
   pinMode(STATUS_BUTTON, INPUT_PULLUP);  
-  pinMode(POWER_BUTTON, INPUT_PULLUP);
 
   attachInterrupt(digitalPinToInterrupt(STATUS_BUTTON), handleStatusInterrupt, FALLING);
-  attachInterrupt(digitalPinToInterrupt(POWER_BUTTON), handlePowerInterrupt, FALLING);
 
 
 }
@@ -218,30 +118,6 @@ void setup() {
 void loop() {
   
   handleCLI();
-  // wifiButtonState = digitalRead(wifiButtonPin);
-
-  // if (wifiButtonState == LOW && lastWifiButtonState == HIGH) {
-  //   delay(50);
-
-  //   wifiEnabled = !wifiEnabled;
-  //   Serial.print("Mode Toggled - Now: ");
-  //   Serial.println(wifiEnabled ? "Diagnostics Mode" : "Race Mode");
-  //   delay(300);
-  //   isDiagnosticsMode = !isDiagnosticsMode;
-  // }
-  // lastWifiButtonState = wifiButtonState;
-
-  // if (status == "diagnostics") {
-  //   diagnosticsMode();
-  // } else if (status == "race") {
-  //     raceMode();
-  // } else if (status == "off") {
-  //     // do nothing
-  // }
-  
-  // Serial.println(isDiagnosticsMode ? "WiFi is ON (SSID visible)" : "WiFi is OFF (hidden)");
-
-  //random rpm values to check fetching rpm,determine the mode we are at that moment,etc.(testing...)
   
   changeStatus();
 

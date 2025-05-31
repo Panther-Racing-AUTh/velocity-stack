@@ -2,6 +2,7 @@
 #include "include/rpm_data.h"
 #include "include/nvs_utils.h"
 #include "include/rpm.h"
+#include <pins_arduino.h>
 
 // === Internal Timing Variables ===
 volatile unsigned long t1 = 0, t2 = 0;
@@ -11,6 +12,8 @@ volatile bool risingEdgeDetected = false;
 
 // === RPM Source Management ===
 RPMSource currentRPMSource = SENSOR;  // Default source
+
+int RPM_SENSOR_PIN = 18;
 
 // === Sensor Interrupt Service Routine ===
 void IRAM_ATTR rpmSensorISR() {
@@ -90,4 +93,19 @@ float getRPMUnified() {
         rpm = simulateMoto3RPM();  // overwrite directly
     }
     return rpm;
+}
+
+void initRpmSensorInterrupt() {
+    pinMode(RPM_SENSOR_PIN, INPUT);
+    attachInterrupt(digitalPinToInterrupt(RPM_SENSOR_PIN), rpmSensorISR, RISING);
+}
+
+int getRpmPin() {
+    return RPM_SENSOR_PIN;
+}
+
+void setRpmPin(int pin) {
+    detachInterrupt(digitalPinToInterrupt(RPM_SENSOR_PIN));
+    RPM_SENSOR_PIN = pin;
+    initRpmSensorInterrupt();
 }

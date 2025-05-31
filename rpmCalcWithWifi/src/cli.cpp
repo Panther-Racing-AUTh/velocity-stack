@@ -5,103 +5,80 @@
 #include "../include/rpm.h"
 #include "../include/servo.h"
 #include "../include/wifi_utils.h"
+#include "../include/state.h"
+#include "../include/pin_utils.h"
 #include <WiFi.h>
 
 
-// variables from rpmCalcWithWifi.ino
-extern String status;
-extern bool servoFollowingRPM;
 
 
 void printMenu() {
-    Serial.println("\n========= 🛠️ Command Menu ===================");
+    Serial.println(F("\n============= 📜 COMMAND MENU ============="));
 
-    Serial.println("\n📦 SYSTEM COMMANDS");
-    Serial.println("  mode set <value>         - Set system mode (rpm, wifi, diagnostics, off)");
-    Serial.println("  mode list                - List all valid modes");
+    Serial.println(F("\n🔧 NVS COMMANDS"));
+    Serial.println(F("  nvs store <thresholds>     – Store servo RPM thresholds"));
+    Serial.println(F("  nvs list                   – List stored RPM ranges"));
+    Serial.println(F("  nvs reset                  – Reset and restore default ranges"));
+    Serial.println(F("  nvs map                    – Show range → servo mapping"));
 
-    Serial.println("\n🔁 RPM COMMANDS");
-    Serial.println("  rpm set <value>          - Set a specific RPM value");
-    Serial.println("  rpm read                 - Show the current RPM");
-    Serial.println("  rpm source sensor        - Use RPM from live sensor input");
-    Serial.println("  rpm source sim           - Use simulated RPM values");
-    Serial.println("  rpm source manual        - Use manually defined RPM");
-    Serial.println("  rpm live                 - Live monitor RPM (exit with 'exit')");
+    Serial.println(F("\n📈 RPM COMMANDS"));
+    Serial.println(F("  rpm read                   – Show current RPM and source"));
+    Serial.println(F("  rpm set <value>            – Manually set RPM"));
+    Serial.println(F("  rpm source <sensor|sim|manual> – Change RPM input source"));
+    Serial.println(F("  rpm live                   – Live RPM updates (type 'exit' to leave)"));
+    Serial.println(F("  rpm pin get                – Show RPM sensor pin"));
+    Serial.println(F("  rpm pin set <pin>          – Set RPM sensor pin"));
 
-    Serial.println("\n⚙️ SERVO COMMANDS");
-    Serial.println("  servo status           → Show servo status and configuration"); 
-    Serial.println("  servo set <angle>        - Set the servo to a specific angle (0–360°)");
-    Serial.println("  servo get                - Show the current servo angle");
-    Serial.println("  servo sweep <f> <t> <s> <d> - Sweep from angle f to t in steps s with delay d (ms)");
-    Serial.println("  servo fullcircle         - Full sweep 0° → 360° → 0°");
-    Serial.println("  servo full                - One-way 0° → 360° sweep (no return)");
-    Serial.println("  servo reset              - Move servo to 0°");
-    Serial.println("  servo init default       - Initialize UART and servo with default pins");
-    Serial.println("  servo init <rx> <tx>     - Dynamically assign UART pins to servo");
-    Serial.println("  servo follow             - Make servo follow live RPM values");
-    Serial.println("  servo unfollow           - Stop servo from following RPM");
-    Serial.println("  servo map                - Show current RPM ranges and mapped servo positions");
+    Serial.println(F("\n🦾 SERVO COMMANDS"));
+    Serial.println(F("  servo set <angle>          – Set servo to angle (0–360°)"));
+    Serial.println(F("  servo get                  – Get current servo angle"));
+    Serial.println(F("  servo sweep <f> <t> <s> <d> – Sweep servo (from–to, step, delay)"));
+    Serial.println(F("  servo full                 – 0→360° sweep (no return)"));
+    Serial.println(F("  servo fullcircle           – 0→360°→0° sweep"));
+    Serial.println(F("  servo reset                – Reset servo to 0°"));
+    Serial.println(F("  servo follow               – Enable servo RPM following"));
+    Serial.println(F("  servo unfollow             – Disable servo tracking"));
+    Serial.println(F("  servo init default         – Init servo UART with default pins"));
+    Serial.println(F("  servo init <rx> <tx>       – Init servo with custom UART pins"));
+    Serial.println(F("  servo positions set        – Manually set servo positions per range"));
+    Serial.println(F("  servo map                  – Show active RPM→position mapping"));
+    Serial.println(F("  servo rpm                  – Print position for current RPM"));
+    Serial.println(F("  servo status               – Print servo config and state"));
 
-    Serial.println("\n💾 NVS COMMANDS");
-    Serial.println("  nvs store <val> <val>... - Set new RPM thresholds (0–14500)");
-    Serial.println("                             Requires min 3 ascending values.");
-    Serial.println("                             0 and 14500 will be added if missing.");
-    Serial.println("  nvs list                 - Show current RPM ranges");
-    Serial.println("  nvs reset                - Erase NVS and restore default ranges");
-    Serial.println("  nvs map                  - Show mapping from RPM ranges to servo positions");
+    Serial.println(F("\n📶 WIFI COMMANDS"));
+    Serial.println(F("  wifi enable                – Start Wi-Fi in AP mode"));
+    Serial.println(F("  wifi disable               – Disable Wi-Fi"));
+    Serial.println(F("  wifi ip                    – Show AP IP address"));
+    Serial.println(F("  wifi txpower               – Show TX power"));
+    Serial.println(F("  wifi txpower <value>       – Set TX power in dBm"));
+    Serial.println(F("  wifi mac                   – Print MAC address"));
+    Serial.println(F("  wifi clients               – Show number of connected clients"));
+    Serial.println(F("  wifi status                – Show full Wi-Fi status"));
 
-    Serial.println("\n📡 WIFI COMMANDS");
-    Serial.println("  wifi enable              - Turn Wi-Fi access point ON");
-    Serial.println("  wifi disable             - Turn Wi-Fi OFF");
-    Serial.println("  wifi status              - Show current Wi-Fi mode and stats");
-    Serial.println("  wifi ip                  - Show the ESP32 IP address");
-    Serial.println("  wifi mac                 - Show the ESP32 Mac address");
-    Serial.println("  wifi clients             - List connected devices with IP/MAC");
-    Serial.println("  wifi txpower             - Show current TX power in dBm");
-    Serial.println("  wifi txpower <val>       - Set Wi-Fi TX power (8.5–20.5 dBm)");
+    Serial.println(F("\n🧭 STATE COMMANDS"));
+    Serial.println(F("  state get                  – Show current system state"));
+    Serial.println(F("  state set <race|diagnostics|config> – Change system state"));
+    Serial.println(F("  state pin get              – Get button pin used for state switching"));
+    Serial.println(F("  state pin set <pin>        – Set button pin and reattach interrupt"));
+    Serial.println(F("  state list                 – Show all valid system states"));
 
-    Serial.println("\n🆘 OTHER");
-    Serial.println("  help                     - Show this menu again");
-    Serial.println("  status                   - Show current system status");
+    Serial.println(F("\n📌 MISC COMMANDS"));
+    Serial.println(F("  pin clear <pin>            – Detach interrupts and disable pin"));
+    Serial.println(F("  status                     – Full system status report"));
+    Serial.println(F("  help                       – Show this command menu"));
 
-    Serial.println("=============================================\n");
+    Serial.println(F("\n===========================================\n"));
 }
-
 
 void handleCLI() {
     if (Serial.available()) {
         String input = Serial.readStringUntil('\n');
         input.trim();  // Remove whitespace
 
-        // =============== SYSTEM COMMANDS ===============
-        
-            if (input.startsWith("mode set ")) {
-                String mode = input.substring(9); // after "mode set "
-                mode.toLowerCase();
-            
-                if (mode == "race" || mode == "wifi" || mode == "diagnostics" || mode == "off") {
-                    status = mode;
-                    Serial.print("✅ System mode set to: ");
-                    Serial.println(status);
-                } else {
-                    Serial.print("❌ Invalid mode: ");
-                    Serial.println(status);
-                    Serial.println("Use 'mode list' to view valid modes.");
-                }
-            }
-            
-            else if (input == "mode list") {
-                Serial.println("🧭 Valid system modes:");
-                Serial.println("  - rpm");
-                Serial.println("  - wifi");
-                Serial.println("  - diagnostics");
-                Serial.println("  - off");
-            }
-            
         
         // ================ NVS COMMANDS ===================
         
-        else if (input.startsWith("nvs store")) {
+        if (input.startsWith("nvs store")) {
             input.trim();
             
             // Prepare a safe mutable buffer
@@ -227,6 +204,18 @@ void handleCLI() {
             }
         }
        
+        else if (input.startsWith("rpm pin")) {
+            if (input == "rpm pin get") {
+                Serial.printf("📍 RPM sensor pin: %d\n", getRpmPin());
+            } else if (input.startsWith("rpm pin set")) {
+                int pin = input.substring(12).toInt();  // skip "rpm pin set "
+                setRpmPin(pin);
+                Serial.printf("✅ RPM sensor pin set to %d\n", pin);
+            } else {
+                Serial.println("❌ Usage: 'rpm pin get' or 'rpm pin set <pin>'");
+            }
+        }
+
         // =============== SERVO COMMANDS ================
         else if (input.startsWith("servo set ")) {
             int angle = input.substring(10).toInt();
@@ -339,7 +328,6 @@ void handleCLI() {
         }
         
         // ============= WIFI COMMANDS ===================
-
         else if (input == "wifi enable") {
             enableWiFi();
         }
@@ -351,24 +339,6 @@ void handleCLI() {
         else if (input == "wifi ip") {
         Serial.print("📡 Access Point IP: ");
         Serial.println(espAPIP);
-        }
-        
-        else if (input == "wifi status") {
-            Serial.println("📶 Wi-Fi Status Report");
-            
-            if (WiFi.getMode() == WIFI_MODE_AP && WiFi.softAPgetStationNum() >= 0) {
-                Serial.println("  Mode: Access Point (AP)");
-                Serial.print("  SSID: ");
-                Serial.println(ssid);
-                Serial.print("  Password: ");
-                Serial.println(password);
-                Serial.print("  IP Address: ");
-                Serial.println(espAPIP);
-                Serial.print("  Clients connected: ");
-                Serial.println(WiFi.softAPgetStationNum());
-            } else {
-                Serial.println("  Status: ❌ Wi-Fi is OFF");
-            }
         }
 
         else if (input.startsWith("wifi txpower")) {
@@ -388,11 +358,139 @@ void handleCLI() {
             printWifiMac();
         }
 
+        else if (input == "wifi status") {
+            Serial.println(F("📶 Wi-Fi Status Report"));
+        
+            wifi_mode_t mode = WiFi.getMode();
+            int clientCount = WiFi.softAPgetStationNum();
+            float txPower = WiFi.getTxPower();
+            String mac = WiFi.softAPmacAddress();
+        
+            Serial.printf("  MAC Address: %s\n", mac.c_str());
+            showTxPower();
+        
+            if (mode == WIFI_MODE_AP) {
+                Serial.println(F("  Mode: Access Point (AP)"));
+                Serial.print(F("  SSID: ")); Serial.println(ssid);
+                Serial.print(F("  Password: ")); Serial.println(password);
+                Serial.print(F("  IP Address: ")); Serial.println(espAPIP);
+                Serial.print(F("  Clients connected: ")); Serial.println(clientCount);
+            } else if (mode == WIFI_MODE_STA) {
+                Serial.println(F("  Mode: Station (STA)"));
+                Serial.print(F("  Connected to: ")); Serial.println(WiFi.SSID());
+                Serial.print(F("  IP Address: ")); Serial.println(WiFi.localIP());
+                Serial.print(F("  RSSI: ")); Serial.print(WiFi.RSSI()); Serial.println(" dBm");
+            } else {
+                Serial.println(F("  Status: ❌ Wi-Fi is OFF"));
+            }
+        
+            // Optional: show time since enabled
+            static unsigned long wifiStartMillis = millis();
+            unsigned long uptimeSec = (millis() - wifiStartMillis) / 1000;
+            Serial.printf("  Wi-Fi Uptime: %lu seconds\n", uptimeSec);
+        }
+
+        // ============= STATE COMMANDS ===================
+        else if (input == "state get") {
+            Serial.printf("📟 Current system state: %s\n", getCurrentStateName());
+        }
+        
+        else if (input.startsWith("state set ")) {
+            String stateName = input.substring(10);  // skip "state set "
+            if (setStateByName(stateName)) {
+                Serial.printf("✅ State switched to: %s\n", getCurrentStateName());
+            } else {
+                Serial.println("❌ Invalid state name. Use: race, diagnostics, or config.");
+            }
+        }
+        
+        else if (input == "state pin get") {
+            Serial.printf("📍 Current button pin: GPIO %d\n", getModeSwitchButtonPin());
+        }
+        
+        else if (input.startsWith("state pin set ")) {
+            int pin = input.substring(14).toInt();  // skip "state pin set "
+            if (pin <= 0 || pin >= 40) {
+                Serial.println("❌ Invalid GPIO number.");
+            } else {
+                setModeSwitchButtonPin(pin);
+                initModeButtonInterrupt();  // Reattach interrupt to the new pin
+                Serial.printf("📍 Button pin set to GPIO %d and interrupt attached.\n", pin);
+            }
+        }
+
+        else if (input == "state list") {
+            Serial.println("🧭 Valid system modes:");
+            Serial.println("  - race");
+            Serial.println("  - diagnostics");
+            Serial.println("  - config");
+            Serial.println("  - off");
+        }
+       
         // ============== MISC COMMANDS ===================     
         
-        else if(input == "status"){
-            Serial.print("Current mode: ");
-            Serial.println(status);
+        else if (input == "status") {
+            Serial.println(F("\n========= 📊 SYSTEM STATUS REPORT =========\n"));
+        
+            // === SYSTEM MODE ===
+            Serial.print(F("🧭 Mode: "));
+            Serial.println(getCurrentStateName());
+        
+            // === BUTTON ===
+            Serial.print(F("🔘 Mode Switch Pin: GPIO "));
+            Serial.println(getModeSwitchButtonPin());
+        
+            // === RPM ===
+            Serial.println(F("\n📈 RPM Subsystem"));
+            Serial.printf("  Source: %s\n", getRPMSourceName());
+            Serial.printf("  Value: %.2f RPM\n", getRPMUnified());
+            Serial.printf("  Sensor Pin: GPIO %d\n", getRpmPin());
+        
+            // === SERVO ===
+            Serial.println(F("\n🦾 Servo Subsystem"));
+            Serial.printf("  RX Pin: GPIO %d\n", SERVO_RX);
+            Serial.printf("  TX Pin: GPIO %d\n", SERVO_TX);
+            Serial.printf("  Following RPM: %s\n", servoFollowingEnabled ? "✅ YES" : "❌ NO");
+            Serial.printf("  Current Angle: %d°\n", getServoAngle());
+            Serial.println("  Range → Position Mapping:");
+            for (int i = 0; i < numRanges; ++i) {
+                Serial.printf("    [%5d – %5d] RPM → Pos: %4d\n",
+                              modeRanges[i][0], modeRanges[i][1], modeServoPositions[i]);
+            }
+        
+            // === WIFI ===
+            Serial.println(F("\n📡 Wi-Fi Subsystem"));
+        
+            wifi_mode_t mode = WiFi.getMode();
+            int clientCount = WiFi.softAPgetStationNum();
+            float txPower = WiFi.getTxPower();
+            String mac = WiFi.softAPmacAddress();
+        
+            Serial.printf("  MAC Address: %s\n", mac.c_str());
+            showTxPower();
+        
+            if (mode == WIFI_MODE_AP) {
+                Serial.println(F("  Mode: Access Point (AP)"));
+                Serial.print(F("  SSID: ")); Serial.println(ssid);
+                Serial.print(F("  Password: ")); Serial.println(password);
+                Serial.print(F("  IP Address: ")); Serial.println(espAPIP);
+                Serial.print(F("  Clients Connected: ")); Serial.println(clientCount);
+            } else if (mode == WIFI_MODE_STA) {
+                Serial.println(F("  Mode: Station (STA)"));
+                Serial.print(F("  Connected to: ")); Serial.println(WiFi.SSID());
+                Serial.print(F("  IP Address: ")); Serial.println(WiFi.localIP());
+                Serial.print(F("  RSSI: ")); Serial.print(WiFi.RSSI()); Serial.println(" dBm");
+            } else {
+                Serial.println(F("  Status: ❌ OFF"));
+            }
+        
+            // === COMPLETION ===
+            Serial.println(F("\n===========================================\n"));
+        }
+
+        else if (input.startsWith("pin clear ")) {
+            int pin = input.substring(10).toInt();  // skip "pin clear "
+            clearPin(pin);
         }
 
         else if (input == "help") {
