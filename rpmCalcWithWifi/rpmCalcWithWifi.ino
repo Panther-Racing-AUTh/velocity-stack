@@ -86,7 +86,8 @@ void IRAM_ATTR handleStatusInterrupt() {
 
 void setup() { 
   Serial.begin(115200);
-
+  while (!Serial) delay(10); // <-- For ESP32-C3 USB Serial
+  delay(500);
   // NVS Initialization
   initNVS();
 

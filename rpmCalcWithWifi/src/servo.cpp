@@ -1,6 +1,6 @@
 // ===== Default pin values =====
-#define DEFAULT_SERVO_RX 6
-#define DEFAULT_SERVO_TX 7
+#define DEFAULT_SERVO_RX 2
+#define DEFAULT_SERVO_TX 3
 
 #include <Arduino.h>
 #include <SCServo.h>
@@ -18,7 +18,7 @@ int SERVO_TX = DEFAULT_SERVO_TX;
 const int SERVO_ID = 1;
 
 SMS_STS st;
-HardwareSerial& servoSerial = Serial1;
+HardwareSerial servoSerial(1);;
 
 int lastServoPos = -1;
 bool servoFollowingEnabled = false;
@@ -85,6 +85,7 @@ void setServoAngle(int degrees) {
     int pos = int(4096 * (degrees / 360.0));
     st.WritePosEx(SERVO_ID, pos, 0, 50);
     lastServoPos = pos;
+    Serial.println("Called setServoAngle");
 }
 
 // Get current angle (converted from pos)

@@ -70,11 +70,20 @@ void printMenu() {
     Serial.println(F("\n===========================================\n"));
 }
 
+bool isSafeCommand(const String& input) {
+    return input.startsWith("status") || input.startsWith("state");
+}
+
 void handleCLI() {
     if (Serial.available()) {
         String input = Serial.readStringUntil('\n');
         input.trim();  // Remove whitespace
 
+        // Only allow full CLI in DIAGNOSTICS mode
+        if (getCurrentState() != SystemState::CONFIG && !isSafeCommand(input)) {
+            Serial.println("⚠️ CLI is restricted. Switch to CONFIG mode to access full commands.");
+            return;
+        }
         
         // ================ NVS COMMANDS ===================
         
@@ -200,6 +209,7 @@ void handleCLI() {
                 // Print current RPM with source
                 float currentRPM = getRPMUnified();
                 Serial.printf("📈 RPM (%s): %.2f\n", getRPMSourceName(), currentRPM);
+                updateServoIfFollowing();
                 delay(200);  // Delay between updates to avoid flooding the output
             }
         }

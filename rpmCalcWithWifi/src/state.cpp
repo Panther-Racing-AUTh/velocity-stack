@@ -1,4 +1,7 @@
 #include "../include/state.h"
+#include "../include/servo.h"
+#include "../include/rpm.h"
+#include "../include/wifi_utils.h"
 
 // Internal current state variable
 static SystemState currentState = SystemState::UNKNOWN;
@@ -11,6 +14,12 @@ unsigned long singlePressTimer = 0;
 bool singlePressPending = false;
 
 int MODE_SWITCH_PIN = 1;
+
+// Forward declarations
+void raceMode();
+void diagnosticsMode();
+void offMode();
+bool isSafeCommand(const String& input);
 
 int getModeSwitchButtonPin() {
     return MODE_SWITCH_PIN;
@@ -57,6 +66,15 @@ bool setState(SystemState newState) {
                   (newState == SystemState::OFF) ? "off" : "unknown");
 
     currentState = newState;
+    if (newState == SystemState::RACE) {
+        raceMode();
+    } else if (newState == SystemState::DIAGNOSTICS) {
+        diagnosticsMode();
+    } else if (newState == SystemState::CONFIG) {
+        offMode();
+    } else if (newState == SystemState::OFF) {
+        offMode();
+    }
 
     // Optional: enter logic for new state
     // e.g., resetServo(), stopWiFi(), enableDiagnostics()
@@ -99,7 +117,6 @@ void changeStatus(){
         if (currentState == SystemState::DIAGNOSTICS) {
             setState(SystemState::RACE);
             Serial.println("Switched to RACE mode");
-            // raceMode();
         } else {
             setState(SystemState::DIAGNOSTICS);
             Serial.println("Switched to DIAGNOSTICS mode");
@@ -116,10 +133,30 @@ void changeStatus(){
         if (currentState == SystemState::OFF) {
             setState(SystemState::DIAGNOSTICS);
             Serial.println("Turned ON: DIAGNOSTICS mode");
-            // diagnosticsMode();
         } else {
             setState(SystemState::OFF);
             Serial.printf("Turned OFF\n");
         }
     }
+}
+
+void raceMode() {
+    enableServoFollow();         // Servo follows live RPM
+    setRPMSource(SENSOR);        // Real RPM input
+    disableWiFi();               // No config access during race
+    Serial.println("🏁 Race mode activated: live RPM, servo follow, Wi-Fi disabled");
+}
+
+void diagnosticsMode() {
+    disableServoFollow();       // Manual servo control
+    setRPMSource(MANUAL);       // Use test values
+    enableWiFi();               // Allow access via Wi-Fi
+    Serial.println("🧪 Diagnostics mode: manual RPM, Wi-Fi enabled, manual servo");
+}
+
+void offMode() {
+    disableServoFollow();       // Turn off any movement
+    setRPMSource(MANUAL);       // Safe fallback
+    disableWiFi();              // Shut off comms
+    Serial.println("🛑 OFF mode: all systems disabled");
 }
