@@ -45,6 +45,12 @@ void printMenu() {
     Serial.println(F("  servo rpm                  – Print position for current RPM"));
     Serial.println(F("  servo status               – Print servo config and state"));
 
+    Serial.println(F("\n⚙️ MECHANICAL CONFIGURATION"));
+    Serial.println(F("  rack get                   – Show current rack length (mm)"));
+    Serial.println(F("  rack set <length_mm>       – Set rack length in mm"));
+    Serial.println(F("  pinion get                 – Show current pinion radius (mm)"));
+    Serial.println(F("  pinion set <radius_mm>     – Set pinion gear radius in mm"));
+
     Serial.println(F("\n📶 WIFI COMMANDS"));
     Serial.println(F("  wifi enable                – Start Wi-Fi in AP mode"));
     Serial.println(F("  wifi disable               – Disable Wi-Fi"));
@@ -337,6 +343,27 @@ void handleCLI() {
             servoRPM();
         }
         
+        else if (input == "pinion get"){
+            Serial.printf("Current pinion radius: %f mm\n", getPinionRadius());
+        }
+
+        else if (input == "rack get"){
+            Serial.printf("Current rack length: %f mm\n", getRackLength());
+        }
+
+        else if (input.startsWith("rack set ")) {
+            float len = input.substring(9).toFloat();  // "rack set " is 9 chars
+            setRackLength(len);
+            Serial.printf("✅ Rack length set to %.2f mm\n", len);
+        }
+        else if (input.startsWith("pinion set ")) {
+            float rad = input.substring(11).toFloat();  // "pinion set " is 11 chars
+            setPinionRadius(rad);
+            Serial.printf("✅ Pinion radius set to %.2f mm\n", rad);
+        }
+
+        
+
         // ============= WIFI COMMANDS ===================
         else if (input == "wifi enable") {
             enableWiFi();

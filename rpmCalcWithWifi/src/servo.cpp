@@ -17,6 +17,11 @@ int SERVO_TX = DEFAULT_SERVO_TX;
 
 const int SERVO_ID = 1;
 
+float rackLength = 57.0; // mm
+float pinionRadius = 15.5; // mm
+
+float maxServoDegrees = 0;
+
 SMS_STS st;
 HardwareSerial servoSerial(1);;
 
@@ -24,6 +29,10 @@ int lastServoPos = -1;
 bool servoFollowingEnabled = false;
 
 // ===== Initialization =====
+
+void calculateMaxServoDegrees(){
+    maxServoDegrees = min((rackLength / (2 * PI * pinionRadius)) * 360.0, 360.0);
+}
 
 void servo_init_uart() {
     servoSerial.end();  // In case it was previously running
@@ -36,6 +45,7 @@ void servo_initialize() {
     delay(300);
     st.WritePosEx(SERVO_ID, 0, 0, 20);  // Move to 0°
     delay(500);
+    calculateMaxServoDegrees();
 }
 
 // ===== Combined boot init function =====
@@ -82,10 +92,14 @@ bool configureServoPins(int rx, int tx) {
 
 // Set servo to specific angle in degrees (0–360°)
 void setServoAngle(int degrees) {
+    degrees = constrain(degrees, 0, maxServoDegrees);  // <-- Clamp to safe angle
+    if (maxServoDegrees <= 0.0) {
+        Serial.println("⚠️ maxServoDegrees not initialized!");
+    }
     int pos = int(4096 * (degrees / 360.0));
     st.WritePosEx(SERVO_ID, pos, 0, 50);
     lastServoPos = pos;
-    Serial.println("Called setServoAngle");
+    // Serial.printf("Set Servo Angle: %d° (pos: %d)\n", degrees, pos);
 }
 
 // Get current angle (converted from pos)
@@ -105,14 +119,13 @@ void sweepServo(int fromDeg, int toDeg, int step, int delayMs) {
 
 // Full sweep (0° -> 180° -> 0°)
 void servoSweepForward() {
-    sweepServo(0, 360, 5, 20);
+    sweepServo(0, (int)maxServoDegrees, 5, 20);
 }
 
 void servoSweepFullCycle() {
-    sweepServo(0, 360, 5, 20);
-    sweepServo(360, 0, -5, 20);
+    sweepServo(0, (int)maxServoDegrees, 5, 20);
+    sweepServo((int)maxServoDegrees, 0, -5, 20);
 }
-
 // Reset servo to 0°
 void resetServo() {
     setServoAngle(0);
@@ -150,8 +163,8 @@ void generateServoPositions(int steps) {
     if (steps < 2 || steps > MAX_RANGES) return;
   
     for (int i = 0; i < steps; ++i) {
-      float degrees = (i * 360.0) / (steps - 1);  // spread across full 0–360°
-      modeServoPositions[i] = int(4096 * (degrees / 360.0));  // convert degrees to servo position
+        float degrees = (i * maxServoDegrees) / (steps - 1);
+        modeServoPositions[i] = int(4096 * (degrees / 360.0));  // convert degrees to servo position
     }
 }
 
@@ -198,8 +211,17 @@ void servoStatus() {
                     modeServoPositions[i],
                     360.0 * modeServoPositions[i] / 4095.0);
     }
+
+    
+
+    // 5. Physical Constraints
+    Serial.println("\nPhysical Properties");
+    Serial.printf("Pinion Radius: %f\n", pinionRadius);
+    Serial.printf("Rack Length: %f\n", rackLength);
+    Serial.printf("Maximum angle of the mechanism: %f\n", maxServoDegrees);
+    Serial.printf("Maximum travel of the mechanism: %f\n", maxServoDegrees*pinionRadius);
   
-    // 5. Current Mode and Position
+    // 6. Current Mode and Position
     Serial.print(F("\n📡 Current Mode: "));
     float currentRPM = getRPMUnified();
     int modeIndex = determineMode(currentRPM);
@@ -214,3 +236,23 @@ void servoStatus() {
   
     Serial.println(F("\n=============================================\n"));
   }
+
+
+
+float getPinionRadius() {
+    return pinionRadius;
+}
+
+float getRackLength() {
+    return rackLength;
+}
+
+void setPinionRadius(float newRadius) {
+    pinionRadius = newRadius;
+    calculateMaxServoDegrees();
+}
+
+void setRackLength(float newLength) {
+    rackLength = newLength;
+    calculateMaxServoDegrees();
+}

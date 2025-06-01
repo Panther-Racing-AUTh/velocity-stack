@@ -73,6 +73,12 @@ void servoStatus();
 
 void servoRPM();
 
+float getPinionRadius();
 
+float getRackLength();
+
+void setPinionRadius(float newRadius);
+
+void setRackLength(float newLength);
 
 #endif  // SERVO_H
