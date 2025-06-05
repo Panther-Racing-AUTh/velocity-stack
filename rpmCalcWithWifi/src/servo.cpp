@@ -7,6 +7,7 @@
 #include "include/rpm_data.h"
 #include "include/rpm.h"
 #include "include/nvs_utils.h"
+#include "include/pin_utils.h"
 #include "include/servo.h"
 
 
@@ -44,6 +45,7 @@ void servo_init_uart() {
 void servo_initialize() {
     delay(300);
     st.WritePosEx(SERVO_ID, 0, 0, 20);  // Move to 0°
+    initMovementPin();
     delay(500);
     calculateMaxServoDegrees();
 }
@@ -97,6 +99,14 @@ void setServoAngle(int degrees) {
         Serial.println("⚠️ maxServoDegrees not initialized!");
     }
     int pos = int(4096 * (degrees / 360.0));
+
+    // Signal movement ON if angle > 0, OFF otherwise
+    if (degrees > 0) {
+        setMovementHigh();
+    } else {
+        setMovementLow();
+    }
+
     st.WritePosEx(SERVO_ID, pos, 0, 50);
     lastServoPos = pos;
     // Serial.printf("Set Servo Angle: %d° (pos: %d)\n", degrees, pos);
@@ -152,6 +162,13 @@ void updateServoIfFollowing() {
     float currentRPM = getRPMUnified();
     int modeNow = determineMode(currentRPM);
     int targetPos = modeServoPositions[modeNow - 1];
+
+    // Signal movement ON if angle > 0, OFF otherwise
+    if (targetPos > 0) {
+        setMovementHigh();
+    } else {
+        setMovementLow();
+    }
 
     if (targetPos != lastServoPos) {
         st.WritePosEx(SERVO_ID, targetPos, 0, 50);

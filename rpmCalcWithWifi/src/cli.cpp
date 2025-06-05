@@ -10,7 +10,9 @@
 #include <WiFi.h>
 
 
+String SYSTEM_VERSION = "1.0.3";
 
+extern int STATUS_BUTTON;
 
 void printMenu() {
     Serial.println(F("\n============= 📜 COMMAND MENU ============="));
@@ -68,9 +70,16 @@ void printMenu() {
     Serial.println(F("  state pin set <pin>        – Set button pin and reattach interrupt"));
     Serial.println(F("  state list                 – Show all valid system states"));
 
-    Serial.println(F("\n📌 MISC COMMANDS"));
+    Serial.println(F("\n📌 PIN COMMANDS"));
+    Serial.println(F("  movement pin get           – Show current movement pin"));
+    Serial.println(F("  movement pin set <pin>     – Change movement pin and reinitialize"));
+    Serial.println(F("  movement pin read          – Read logic level of movement pin"));
     Serial.println(F("  pin clear <pin>            – Detach interrupts and disable pin"));
+    Serial.println(F("  pin status                 – Display all GPIO pin assignments"));
+
+    Serial.println(F("\n🧰 MISC COMMANDS"));
     Serial.println(F("  status                     – Full system status report"));
+    Serial.println(F("  version                    – Show system version"));
     Serial.println(F("  help                       – Show this command menu"));
 
     Serial.println(F("\n===========================================\n"));
@@ -356,6 +365,7 @@ void handleCLI() {
             setRackLength(len);
             Serial.printf("✅ Rack length set to %.2f mm\n", len);
         }
+        
         else if (input.startsWith("pinion set ")) {
             float rad = input.substring(11).toFloat();  // "pinion set " is 11 chars
             setPinionRadius(rad);
@@ -464,6 +474,56 @@ void handleCLI() {
             Serial.println("  - off");
         }
        
+        // ============== PIN COMMANDS ===================  
+
+        else if (input == "movement pin get") {
+            Serial.printf("📍 Current movement pin: GPIO %d\n", getMovementPin());
+        }
+
+        else if (input.startsWith("movement pin set ")) {
+            int pin = input.substring(17).toInt();  // skip "state pin set "
+            if (pin <= 0 || pin >= 40) {
+                Serial.println("❌ Invalid GPIO number.");
+            } else {
+                changeMovementPin(pin);
+                Serial.printf("📍 Movement pin set to GPIO %d and initialized.\n", pin);
+            }
+        }
+
+        else if (input == "movement pin read") {
+            Serial.printf("Current button pin: GPIO %d\n", getMovementPinState());
+        }
+
+        else if (input.startsWith("pin clear ")) {
+            int pin = input.substring(10).toInt();  // skip "pin clear "
+            clearInterruptPin(pin);
+        }
+
+        else if (input == "pin status") {
+            Serial.println(F("\n========= 📊 PIN STATUS =========\n"));
+
+            // RPM interrupt pin
+            Serial.print(F("Interrupt pin for RPM read: "));
+            Serial.println(getRpmPin());
+            
+            // Button pin for changing states
+            Serial.print(F("Button pin for changing states: "));
+            Serial.println(getModeSwitchButtonPin());
+
+            // Button pin for viewing system status
+            Serial.printf("Button pin for viewing system status: %d\n", STATUS_BUTTON);
+            
+            // Rx/Tx pins used for servo communication
+            Serial.printf("Rx/Tx pins used for servo communication: RX: %d, TX: %d\n", SERVO_RX, SERVO_TX);
+            
+            // Pin for servo position
+            Serial.print(F("Pin for servo position: "));
+            Serial.println(getMovementPin());
+
+            // === COMPLETION ===
+            Serial.println(F("\n===========================================\n"));
+        }
+
         // ============== MISC COMMANDS ===================     
         
         else if (input == "status") {
@@ -525,10 +585,10 @@ void handleCLI() {
             Serial.println(F("\n===========================================\n"));
         }
 
-        else if (input.startsWith("pin clear ")) {
-            int pin = input.substring(10).toInt();  // skip "pin clear "
-            clearPin(pin);
-        }
+       else if (input == "version") {
+        Serial.print("Current System Version: ");
+        Serial.println(SYSTEM_VERSION);
+       } 
 
         else if (input == "help") {
             printMenu();
