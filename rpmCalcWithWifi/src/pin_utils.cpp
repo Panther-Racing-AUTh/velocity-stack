@@ -1,24 +1,18 @@
 #include "../include/pin_utils.h"
+#include "../include/nvs_utils.h"
 
-static int movementPin = 10;  // Current pin (initialized to invalid)
+int movementPin;  // Current pin (initialized to invalid)
 
 void clearInterruptPin(int pin) {
-    detachInterrupt(digitalPinToInterrupt(pin));
-    pinMode(pin, INPUT);  // set to neutral state
-    Serial.printf("🧹 Cleared pin %d: interrupts detached, mode set to INPUT\n", pin);
+  detachInterrupt(digitalPinToInterrupt(pin));
+  pinMode(pin, INPUT);  // set to neutral state
+  Serial.printf("🧹 Cleared pin %d: interrupts detached, mode set to INPUT\n", pin);
 }
 
 void initMovementPin() {
-  pinMode(movementPin, OUTPUT);
-  digitalWrite(movementPin, LOW);
-}
-
-void initMovementPin(int pin) {
-  pinMode(movementPin, INPUT);     // Optional: disable old pin
-  digitalWrite(movementPin, LOW);  // Safety
-  movementPin = pin;
-  pinMode(movementPin, OUTPUT);
-  digitalWrite(movementPin, LOW);    // Start LOW
+  clearInterruptPin(movementPin);       // Clean any interrupt use (safe no-op if unused)
+  pinMode(movementPin, OUTPUT);         // Set correctly from the start
+  digitalWrite(movementPin, LOW);       // Safe state
 }
 
 void setMovementHigh() {
@@ -33,15 +27,11 @@ int getMovementPin() {
   return movementPin;
 }
 
-void changeMovementPin(int newPin) {
-  digitalWrite(movementPin, LOW);
-  pinMode(movementPin, INPUT);  // Disable old pin
-  
-
-  movementPin = newPin;
-  initMovementPin(newPin);
-}
 
 int getMovementPinState() {
   return digitalRead(movementPin);  // returns HIGH or LOW
+}
+
+void setMovementPin(int pin) {
+  movementPin = pin;
 }

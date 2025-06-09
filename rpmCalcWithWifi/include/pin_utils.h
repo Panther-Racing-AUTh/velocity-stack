@@ -7,17 +7,15 @@ void clearInterruptPin(int pin);
 
 void initMovementPin();
 
-void initMovementPin(int pin);
-
 void setMovementHigh();
 
 void setMovementLow();
 
 int getMovementPin();
 
-void changeMovementPin(int newPin);
-
 int getMovementPinState();
+
+void setMovementPin(int pin);
 
 #endif
 

@@ -2,6 +2,7 @@
 #include "../include/servo.h"
 #include "../include/rpm.h"
 #include "../include/wifi_utils.h"
+#include "../include/nvs_utils.h"
 
 // Internal current state variable
 static SystemState currentState = SystemState::UNKNOWN;

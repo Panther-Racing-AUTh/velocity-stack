@@ -23,6 +23,13 @@ void listNVSContents();
 void setDefaultRanges();
 int determineMode(int rpm);
 int getServoPositionForMode(int mode);
+void storeMechanicalParams();
+void storeServoPositions();
+
+bool loadServoPositions();
+bool loadMechanicalParams();
+void storePinAssignments();
+bool loadPinAssignments();
 
 #ifdef __cplusplus
 }  // extern "C"

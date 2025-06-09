@@ -45,6 +45,7 @@ void servo_init_uart() {
 void servo_initialize() {
     delay(300);
     st.WritePosEx(SERVO_ID, 0, 0, 20);  // Move to 0°
+    Serial.println("About to initialize movement pin from servo.cpp");
     initMovementPin();
     delay(500);
     calculateMaxServoDegrees();
@@ -56,7 +57,8 @@ void servo_defaultInit() {
     SERVO_TX = DEFAULT_SERVO_TX;
     servo_init_uart();
     servo_initialize();
-    generateServoPositions(numRanges);
+    // initialization of the positions happens in nvs initialization
+    // generateServoPositions(numRanges); 
 }
 
 // ===== Dynamic CLI function =====
@@ -183,6 +185,7 @@ void generateServoPositions(int steps) {
         float degrees = (i * maxServoDegrees) / (steps - 1);
         modeServoPositions[i] = int(4096 * (degrees / 360.0));  // convert degrees to servo position
     }
+    storeServoPositions();
 }
 
 void printModeRangeMapping() {
@@ -254,8 +257,6 @@ void servoStatus() {
     Serial.println(F("\n=============================================\n"));
   }
 
-
-
 float getPinionRadius() {
     return pinionRadius;
 }
@@ -266,10 +267,12 @@ float getRackLength() {
 
 void setPinionRadius(float newRadius) {
     pinionRadius = newRadius;
+    storeMechanicalParams();
     calculateMaxServoDegrees();
 }
 
 void setRackLength(float newLength) {
     rackLength = newLength;
+    storeMechanicalParams();
     calculateMaxServoDegrees();
 }

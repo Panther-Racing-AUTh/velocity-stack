@@ -10,7 +10,7 @@
 #include <WiFi.h>
 
 
-String SYSTEM_VERSION = "1.0.3";
+String SYSTEM_VERSION = "1.1.0";
 
 extern int STATUS_BUTTON;
 
@@ -19,7 +19,7 @@ void printMenu() {
 
     Serial.println(F("\n🔧 NVS COMMANDS"));
     Serial.println(F("  nvs store <thresholds>     – Store servo RPM thresholds"));
-    Serial.println(F("  nvs list                   – List stored RPM ranges"));
+    Serial.println(F("  nvs list                   – List ALL stored values in storage"));
     Serial.println(F("  nvs reset                  – Reset and restore default ranges"));
     Serial.println(F("  nvs map                    – Show range → servo mapping"));
 
@@ -235,6 +235,7 @@ void handleCLI() {
             } else if (input.startsWith("rpm pin set")) {
                 int pin = input.substring(12).toInt();  // skip "rpm pin set "
                 setRpmPin(pin);
+                storePinAssignments();
                 Serial.printf("✅ RPM sensor pin set to %d\n", pin);
             } else {
                 Serial.println("❌ Usage: 'rpm pin get' or 'rpm pin set <pin>'");
@@ -308,6 +309,7 @@ void handleCLI() {
             int matched = sscanf(input.c_str(), "servo init %d %d", &rx, &tx);
             if (matched == 2 && rx >= 0 && tx >= 0) {
                 configureServoPins(rx, tx);
+                storePinAssignments();
                 Serial.printf("🛠️ Servo initialized with RX=%d TX=%d\n", rx, tx);
             } else {
                 Serial.println("❌ Usage: servo init <rx> <tx> (non-negative values only)");
@@ -336,7 +338,7 @@ void handleCLI() {
                 }
                 modeServoPositions[i] = pos;
             }
-
+            storeServoPositions();
             Serial.println("✅ Custom servo positions saved:");
             for (int i = 0; i < numRanges; ++i) {
                 Serial.printf("Range %d [%d – %d] => Servo Position: %d\n",
@@ -461,6 +463,7 @@ void handleCLI() {
                 Serial.println("❌ Invalid GPIO number.");
             } else {
                 setModeSwitchButtonPin(pin);
+                storePinAssignments();
                 initModeButtonInterrupt();  // Reattach interrupt to the new pin
                 Serial.printf("📍 Button pin set to GPIO %d and interrupt attached.\n", pin);
             }
@@ -485,7 +488,9 @@ void handleCLI() {
             if (pin <= 0 || pin >= 40) {
                 Serial.println("❌ Invalid GPIO number.");
             } else {
-                changeMovementPin(pin);
+                setMovementPin(pin);
+                storePinAssignments();
+                initMovementPin();                
                 Serial.printf("📍 Movement pin set to GPIO %d and initialized.\n", pin);
             }
         }
