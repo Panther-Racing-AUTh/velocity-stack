@@ -10,7 +10,7 @@
 #include <WiFi.h>
 
 
-String SYSTEM_VERSION = "1.1.0";
+String SYSTEM_VERSION = "1.1.1";
 
 extern int STATUS_BUTTON;
 
@@ -80,10 +80,34 @@ void printMenu() {
     Serial.println(F("\n🧰 MISC COMMANDS"));
     Serial.println(F("  status                     – Full system status report"));
     Serial.println(F("  version                    – Show system version"));
+    Serial.println(F("  pinout                     – Show pinout of board"));
     Serial.println(F("  help                       – Show this command menu"));
 
     Serial.println(F("\n===========================================\n"));
 }
+
+void printPinout() {
+    Serial.println("|---------------------------------------------|");
+    Serial.println("|             ESP32-C3-WROOM-02               |");
+    Serial.println("|                                             |");
+    Serial.println("|  GND        |---------------|       GND     |");
+    Serial.println("|  3V3        |               |       GPIO0   |");
+    Serial.println("|  3V3        |               |       GPIO1   |");
+    Serial.println("|  RST        |               |       GPIO2   |");
+    Serial.println("|  GND        |               |       GPIO3   |");
+    Serial.println("|  GPIO4      |               |       GND     |");
+    Serial.println("|  GPIO5      |               |       GPIO10  |");
+    Serial.println("|  GPIO6      |               |       GND     |");
+    Serial.println("|  GPIO7      |               |       GPIO20  |");
+    Serial.println("|  GND        |               |       GPIO21  |");
+    Serial.println("|  GPIO8      |               |       GND     |");
+    Serial.println("|  GPIO9      |               |       GPIO18  |");
+    Serial.println("|  5V         |               |       GPIO19  |");
+    Serial.println("|  5V         |               |       GND     |");
+    Serial.println("|  GND        |---------------|       GND     |");
+    Serial.println("|---------------------------------------------|");
+}
+
 
 bool isSafeCommand(const String& input) {
     return input.startsWith("status") || input.startsWith("state");
@@ -597,6 +621,10 @@ void handleCLI() {
 
         else if (input == "help") {
             printMenu();
+        }
+
+        else if (input == "pinout"){
+            printPinout();
         }
 
         else {
