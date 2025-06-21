@@ -17,5 +17,15 @@ int getMovementPinState();
 
 void setMovementPin(int pin);
 
+void initMarkPin();
+
+int getMarkPin();
+
+void setMarkPin(int pin);
+
+void IRAM_ATTR markPinISR();
+
+void toggleMovementPin();
+
 #endif
 

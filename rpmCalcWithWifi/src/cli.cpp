@@ -10,7 +10,7 @@
 #include <WiFi.h>
 
 
-String SYSTEM_VERSION = "1.1.1";
+String SYSTEM_VERSION = "1.2.0";
 
 extern int STATUS_BUTTON;
 
@@ -74,6 +74,8 @@ void printMenu() {
     Serial.println(F("  movement pin get           – Show current movement pin"));
     Serial.println(F("  movement pin set <pin>     – Change movement pin and reinitialize"));
     Serial.println(F("  movement pin read          – Read logic level of movement pin"));
+    Serial.println(F("  mark pin get               – Show current mark pin"));
+    Serial.println(F("  mark pin set <pin>         – Change mark pin and reinitialize"));
     Serial.println(F("  pin clear <pin>            – Detach interrupts and disable pin"));
     Serial.println(F("  pin status                 – Display all GPIO pin assignments"));
 
@@ -81,6 +83,7 @@ void printMenu() {
     Serial.println(F("  status                     – Full system status report"));
     Serial.println(F("  version                    – Show system version"));
     Serial.println(F("  pinout                     – Show pinout of board"));
+    Serial.println(F("  reset                      – Reset the board, just like pressing the RST button"));
     Serial.println(F("  help                       – Show this command menu"));
 
     Serial.println(F("\n===========================================\n"));
@@ -508,7 +511,7 @@ void handleCLI() {
         }
 
         else if (input.startsWith("movement pin set ")) {
-            int pin = input.substring(17).toInt();  // skip "state pin set "
+            int pin = input.substring(17).toInt();  // skip "movement pin set "
             if (pin <= 0 || pin >= 40) {
                 Serial.println("❌ Invalid GPIO number.");
             } else {
@@ -520,7 +523,23 @@ void handleCLI() {
         }
 
         else if (input == "movement pin read") {
-            Serial.printf("Current button pin: GPIO %d\n", getMovementPinState());
+            Serial.printf("Movement pin status: %d\n", getMovementPinState());
+        }
+
+        else if (input == "mark pin get") {
+            Serial.printf("📍 Current mark pin: GPIO %d\n", getMarkPin());
+        }
+
+        else if (input.startsWith("mark pin set ")) {
+            int pin = input.substring(13).toInt();  // skip "mark pin set "
+            if (pin <= 0 || pin >= 40) {
+                Serial.println("❌ Invalid GPIO number.");
+            } else {
+                setMarkPin(pin);
+                storePinAssignments();
+                initMarkPin();                
+                Serial.printf("📍 Mark pin set to GPIO %d and initialized.\n", pin);
+            }
         }
 
         else if (input.startsWith("pin clear ")) {
@@ -623,8 +642,12 @@ void handleCLI() {
             printMenu();
         }
 
-        else if (input == "pinout"){
+        else if (input == "pinout") {
             printPinout();
+        }
+
+        else if (input == "reset") {
+            ESP.restart();
         }
 
         else {

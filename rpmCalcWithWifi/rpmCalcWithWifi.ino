@@ -5,6 +5,7 @@
 #include "nvs_flash.h"
 #include "nvs.h"
 #include "esp_wifi.h"
+
 #include <SCServo.h> 
 
 // include rpm data file
@@ -15,6 +16,7 @@
 #include "include/rpm.h"
 #include "include/servo.h"
 #include "include/state.h"
+#include "include/pin_utils.h"
 
 
 
@@ -104,7 +106,8 @@ void setup() {
   // RPM Sensor Pin Initialization
   initRpmSensorInterrupt();
 
-
+  // Mark Pin Initialization
+  initMarkPin();
 
   // button initialization
   pinMode(STATUS_BUTTON, INPUT_PULLUP);  
@@ -126,6 +129,7 @@ void loop() {
   // Check servo update every 200 ms
   updateServoIfFollowing();
   
+  toggleMovementPin();
 
   delay(50);
 }

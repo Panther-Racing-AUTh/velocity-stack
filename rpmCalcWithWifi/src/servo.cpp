@@ -129,14 +129,15 @@ void sweepServo(int fromDeg, int toDeg, int step, int delayMs) {
     }
 }
 
-// Full sweep (0° -> 180° -> 0°)
+// Full sweep (0° -> 180°)
 void servoSweepForward() {
     sweepServo(0, (int)maxServoDegrees, 5, 20);
 }
 
+// Full sweep (0° -> 180° -> 0°)
 void servoSweepFullCycle() {
     sweepServo(0, (int)maxServoDegrees, 5, 20);
-    sweepServo((int)maxServoDegrees, 0, -5, 20);
+    sweepServo((int)maxServoDegrees, 0, 5, 20);
 }
 // Reset servo to 0°
 void resetServo() {

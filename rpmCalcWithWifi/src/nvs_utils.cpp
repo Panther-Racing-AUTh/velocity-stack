@@ -158,7 +158,7 @@ void listNVSContents() {
   }
 
   // === PIN DEFINITIONS ===
-  int32_t rpmPin, buttonPin, movementPin, rxPin, txPin;
+  int32_t rpmPin, buttonPin, movementPin, rxPin, txPin, markPin;
 
   if (nvs_get_i32(handle, "rpm_pin", &rpmPin) == ESP_OK)
     Serial.printf("\n📍 RPM Sensor Pin: GPIO %d\n", rpmPin);
@@ -174,6 +174,11 @@ void listNVSContents() {
     Serial.printf("⚡ Movement Pin: GPIO %d\n", movementPin);
   else
     Serial.println("⚡ Movement Pin: ❌ Not stored in NVS");
+
+  if (nvs_get_i32(handle, "mark_pin", &markPin) == ESP_OK)
+    Serial.printf("⚡ Mark Pin: GPIO %d\n", markPin);
+  else
+    Serial.println("⚡ Mark Pin: ❌ Not stored in NVS");
 
   if (nvs_get_i32(handle, "servo_rx_pin", &rxPin) == ESP_OK &&
       nvs_get_i32(handle, "servo_tx_pin", &txPin) == ESP_OK)
@@ -275,7 +280,6 @@ bool loadMechanicalParams() {
 }
 
 void storePinAssignments() {
-  Serial.println("Called storePinAssignments!");
   nvs_handle_t handle;
   if (nvs_open("storage", NVS_READWRITE, &handle) != ESP_OK) return;
 
@@ -284,6 +288,7 @@ void storePinAssignments() {
   nvs_set_i32(handle, "servo_rx_pin", SERVO_RX);
   nvs_set_i32(handle, "servo_tx_pin", SERVO_TX);
   nvs_set_i32(handle, "movement_pin", getMovementPin());
+  nvs_set_i32(handle, "mark_pin", getMarkPin());
   nvs_commit(handle);
   nvs_close(handle);
 }
@@ -329,6 +334,17 @@ bool loadPinAssignments() {
     // setMovementPin(DEFAULT_MOVEMENT_PIN);  // e.g. 10
     // nvs_set_i32(handle, "movement_pin", DEFAULT_MOVEMENT_PIN);
     Serial.println("movement pin failure");
+    updated = true;
+  }
+
+  // === MARK PIN ===
+  if (nvs_get_i32(handle, "mark_pin", &val) == ESP_OK) {
+    setMarkPin(val);
+    Serial.printf("✅ Loaded Mark pin: %d\n", val);
+  } else {
+    // setMovementPin(DEFAULT_MOVEMENT_PIN);  // e.g. 10
+    // nvs_set_i32(handle, "movement_pin", DEFAULT_MOVEMENT_PIN);
+    Serial.println("mark pin failure");
     updated = true;
   }
 
